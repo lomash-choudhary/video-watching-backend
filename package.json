@@ -1,0 +1,11 @@
+{
+  "name": "video-streaming-backend",
+  "version": "1.0.0",
+  "description": "This the backend for video watching on the internet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "lomash choudhary",
+  "license": "ISC"
+}
