@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { z } from "zod";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import fs from "fs";
 
 export const registerUser = asyncHandler( async (req, res) => {
     //get user details from the body ✅
@@ -51,12 +52,15 @@ export const registerUser = asyncHandler( async (req, res) => {
             $or: [{ username:username },{ email:email }]
         }
     )
+    const avatarLocalPath = req.files?.avatar[0]?.path
+    const coverImageLocalPath = req.files?.coverImage[0]?.path
     if(doesUserAlreadyExists){
+        fs.unlinkSync(avatarLocalPath)
+        fs.unlinkSync(coverImageLocalPath)
         throw new ApiError(409, 'User with this username or email exists in the database')
     }
 
-    const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    
 
     if(!avatarLocalPath){
         throw new ApiError(400, 'Avatar file is required')
@@ -78,6 +82,7 @@ export const registerUser = asyncHandler( async (req, res) => {
         avatar: avatarCloudinaryUpload,
         coverImage: coverImageCloudinaryUpload || ""
     })
+    
 
 
 
