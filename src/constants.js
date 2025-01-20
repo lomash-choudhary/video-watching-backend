@@ -1,1 +1,1 @@
-export const DB_NAME = "ViewSphere"
+export const DB_NAME = "youtube"

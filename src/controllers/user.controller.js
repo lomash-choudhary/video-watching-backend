@@ -17,8 +17,6 @@ export const registerUser = asyncHandler( async (req, res) => {
 
 
     const {username, email, password, fullName, avatar, coverImage} = req.body;
-    console.log(username)
-    console.log(password)
     if(
         [username, email, password, fullName, avatar].some((fields) => fields?.trim() == "")
     ){
@@ -47,12 +45,12 @@ export const registerUser = asyncHandler( async (req, res) => {
     if(!parsedBody.success){
         throw new ApiError(400, 'Error occured while validating the body make sure you pass every validation')
     }
+
     const doesUserAlreadyExists = await User.findOne(
         {
-            $or: [{username},{email}]
+            $or: [{ username:username },{ email:email }]
         }
     )
-
     if(doesUserAlreadyExists){
         throw new ApiError(409, 'User with this username or email exists in the database')
     }
@@ -66,19 +64,22 @@ export const registerUser = asyncHandler( async (req, res) => {
      
     const avatarCloudinaryUpload = await uploadOnCloudinary(avatarLocalPath)
     const coverImageCloudinaryUpload = await uploadOnCloudinary(coverImageLocalPath)
-
+    
     if(!avatarCloudinaryUpload){
         throw new ApiError(400, 'Avatar file is required')
     }
+
 
     const user = await User.create({
         username,
         password,
         email,
         fullName,
-        avatar: avatarCloudinaryUpload.url,
-        coverImage: coverImageCloudinaryUpload?.url || ""
+        avatar: avatarCloudinaryUpload,
+        coverImage: coverImageCloudinaryUpload || ""
     })
+
+
 
     const isUserCreated = await User.findById(user._id).select(
         "-password -refreshToken"

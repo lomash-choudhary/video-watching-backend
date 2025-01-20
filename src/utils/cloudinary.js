@@ -21,10 +21,10 @@ export const uploadOnCloudinary = async (localFilePath) => {
         }
 
         console.log('Uploaded on cloudinary successfully')
-        fs.unlink(localFilePath)
+        fs.unlinkSync(localFilePath)
         return cloudinaryResponse.url
     } catch (error) {
-        fs.unlink(localFilePath)
+        fs.unlinkSync(localFilePath)
         console.log(`Error occured while uploading the file \n Try again${error}`)
     }
 }   
