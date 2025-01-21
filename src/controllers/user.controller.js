@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { z } from "zod";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
 import fs from "fs";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
@@ -181,7 +182,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler( async(req, res) => {
-  const user= await User.findOneAndUpdate(
+  const user = await User.findOneAndUpdate(
     {
       _id: req.userId
     },
@@ -194,6 +195,9 @@ const logoutUser = asyncHandler( async(req, res) => {
       new: true
     }
   )
+  if(!user){
+    throw new ApiError(404, 'Invalid request')
+  }
 
   const cookieOptions = {
     httpOnly:true,
@@ -207,8 +211,50 @@ const logoutUser = asyncHandler( async(req, res) => {
   )
 } )
 
+
+const refreshAccessToken = asyncHandler( async(req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+  if(!incomingRefreshToken){
+    throw new ApiError(400, 'Unauthorized request')
+  }
+
+  try {
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+    
+    const user = await User.findById(decodedToken?._id)
+  
+    if(!user){
+      throw new ApiError(400, 'Invalid refresh token')
+    }
+  
+    if(incomingRefreshToken !== user?.refreshToken){
+      throw new ApiError(400, "Refresh token is either expired or used")
+    }
+  
+    const cookieOptions = {
+      httpOnly:true,
+      secure:true
+    }
+  
+    const {accessToken, refreshToken} = await generateAccessTokenAndRefreshToken(user?._id)
+  
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(200, refreshToken, "Access Token regenerated successfully")
+    )
+  } catch (error) {
+    throw new ApiError(500, 'Error occured while generating the access token please login again to continue further')
+  }
+
+})
+
 export {
   signUpUser,
   loginUser,
-  logoutUser
+  refreshAccessToken,
+  logoutUser,
 }
