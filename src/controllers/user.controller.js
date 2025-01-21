@@ -180,7 +180,30 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler( async(req, res) => {
-  
+  await User.findOneAndUpdate(
+    {
+      _id: req.userId
+    },
+    {
+      $set: {
+        refreshToken: undefined
+      }
+    },
+    {
+      new: true
+    }
+  )
+
+  const cookieOptions = {
+    httpOnly:true,
+    secure:true
+  }
+  return res.status(200)
+  .clearCookie("accessToken", cookieOptions)
+  .clearCookie("refreshToken", cookieOptions)
+  .json(
+    new ApiResponse(200, "Logged Out successfully")
+  )
 } )
 
 export {
