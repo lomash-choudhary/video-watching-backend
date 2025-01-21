@@ -7,5 +7,4 @@ const storage = multer.diskStorage({
       cb(null, `${Date.now()}-${file.originalname}`)
     }
   })
-  
 export const upload = multer({ storage })
