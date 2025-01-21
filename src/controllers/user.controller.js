@@ -27,6 +27,7 @@ const signUpUser = asyncHandler(async (req, res) => {
   // return the response to the user by removing the password and refresh token filed from the object✅
 
   const { username, email, password, fullName, avatar, coverImage } = req.body;
+  console.log(req.body);
   if (
     [username, email, password, fullName, avatar].some(
       (fields) => fields?.trim() == ""
@@ -34,7 +35,7 @@ const signUpUser = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "All fields are required");
   }
-
+  console.log("above all fileds required");
   const validationBody = z.object({
     username: z
       .string()
@@ -180,13 +181,13 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler( async(req, res) => {
-  await User.findOneAndUpdate(
+  const user= await User.findOneAndUpdate(
     {
       _id: req.userId
     },
     {
       $set: {
-        refreshToken: undefined
+        refreshToken: ""
       }
     },
     {
@@ -202,7 +203,7 @@ const logoutUser = asyncHandler( async(req, res) => {
   .clearCookie("accessToken", cookieOptions)
   .clearCookie("refreshToken", cookieOptions)
   .json(
-    new ApiResponse(200, "Logged Out successfully")
+    new ApiResponse(200,{}, "Logged Out successfully")
   )
 } )
 
