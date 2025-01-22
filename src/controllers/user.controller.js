@@ -284,8 +284,43 @@ const getUserDetails = asyncHandler( async(req, res) => {
   )
 } )
 
+const updateUserDetails = asyncHandler( async(req, res) => {
+  const {fullName, email, username} = req.body;
+  if(!fullName || !email || !username) {
+    throw new ApiError(400, "Please enter atleast one field to update");
+  }
 
+  const user = await User.find(
+    {
+      $or:[{email:email},{username:username}]
+    }
+  )
+  if(user.length > 0){
+    throw new ApiError(500, "User with email or username already exists in the database");
+  }
 
+  try {
+    const updatedUser = await User.findByIdAndUpdate(req.userId, {
+      $set: {
+        fullName:fullName,
+        email:email,
+        username: username
+      }
+    },{new:true}).select("-password -refreshToken")
+
+    return res
+    .status(200)
+    .json(
+      new ApiResponse(200,updatedUser,"User details updated successfully")
+    )
+
+  } catch (error) {
+    throw new ApiError(500, "Something went wrong while updating the user details");
+  }
+
+  
+
+} )
 
 export {
   signUpUser,
@@ -293,5 +328,6 @@ export {
   refreshAccessToken,
   logoutUser,
   changeCurrentPassword,
-  getUserDetails
+  getUserDetails,
+  updateUserDetails
 }
