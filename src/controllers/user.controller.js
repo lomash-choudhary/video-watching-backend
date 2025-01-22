@@ -5,7 +5,7 @@ import { z } from "zod";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
-import fs from "fs";
+import fs, { truncateSync } from "fs";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   const user = await User.findById(userId)
@@ -211,7 +211,6 @@ const logoutUser = asyncHandler( async(req, res) => {
   )
 } )
 
-
 const refreshAccessToken = asyncHandler( async(req, res) => {
   const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
@@ -322,6 +321,72 @@ const updateUserDetails = asyncHandler( async(req, res) => {
 
 } )
 
+const updateUserAvatar = asyncHandler( async(req, res) => {
+  const avatarLocalPath = req.files?.avatar[0]?.path
+  
+  if(!avatarLocalPath){
+    throw new ApiError(400, 'Please upload the new profile picture to update it');
+  }
+  const avatarUrl = await uploadOnCloudinary(avatarLocalPath);
+  if(!avatarUrl){
+    throw new ApiError(400, 'Something went wrong while uploading the profile picture please try again later');
+  }
+
+  try {
+    const user = await User.findOneAndUpdate(
+      {
+        _id:req.userId
+      },
+      {
+        avatar: avatarUrl
+      },
+      {new:true}
+    ).select("-password -refreshToken")
+
+    return res
+    .status(200)
+    .json(
+      new ApiResponse(200, user.avatar, "Profile picture update successfully")
+    )
+
+  } catch (error) {
+    throw new ApiError(500, 'Error occured while upadting the users info')
+  }
+  
+} )
+
+const updateUserCoverImage = asyncHandler( async(req, res) => {
+ const coverImageLocalPath = req.files?.coverImage[0]?.path;
+ 
+ if(!coverImageLocalPath){
+  throw new ApiError(400,"Please provide the new cover Image to update it")
+ }
+
+ const coverImageUrl = await uploadOnCloudinary(coverImageLocalPath);
+
+ if(!coverImageUrl){
+  throw new ApiError(400, "error occured while uploading the file on the cloudinary")
+ }
+
+ const user = await User.findOneAndUpdate(
+  {
+    _id:req.userId
+  },
+  {
+    coverImage: coverImageUrl
+  },
+  {
+    new:true
+  }
+ ).select("-password -refreshToken")
+
+ return res
+ .status(200)
+ .json(
+  new ApiResponse(200, user.coverImage, "Cover Image Updated SuccessFully")
+ )
+} )
+
 export {
   signUpUser,
   loginUser,
@@ -329,5 +394,7 @@ export {
   logoutUser,
   changeCurrentPassword,
   getUserDetails,
-  updateUserDetails
+  updateUserDetails,
+  updateUserAvatar,
+  updateUserCoverImage
 }
