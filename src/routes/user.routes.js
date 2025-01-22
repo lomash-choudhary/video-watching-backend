@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signUpUser, loginUser, logoutUser, refreshAccessToken } from "../controllers/user.controller.js";
+import { signUpUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -24,6 +24,8 @@ router.route("/login").post(loginUser)
 //custom middleware usuage
 router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/accessTokenGeneration").post(refreshAccessToken)
+router.route("/changePassword").post(verifyJWT,changeCurrentPassword)
+
 
 
 
