@@ -2,10 +2,10 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { z } from "zod";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
-import fs, { truncateSync } from "fs";
+import fs from "fs";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   const user = await User.findById(userId)
@@ -28,7 +28,6 @@ const signUpUser = asyncHandler(async (req, res) => {
   // return the response to the user by removing the password and refresh token filed from the object✅
 
   const { username, email, password, fullName, avatar, coverImage } = req.body;
-  console.log(req.body);
   if (
     [username, email, password, fullName, avatar].some(
       (fields) => fields?.trim() == ""
@@ -36,7 +35,6 @@ const signUpUser = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "All fields are required");
   }
-  console.log("above all fileds required");
   const validationBody = z.object({
     username: z
       .string()
@@ -256,7 +254,6 @@ const changeCurrentPassword = asyncHandler( async(req, res) => {
   const {oldPassword, newPassword} = req.body;
 
   const user = await User.findById(req.userId)
-  console.log(user)
   const correctPassword = user.isPasswordCorrect(oldPassword)
 
   if(!correctPassword){
@@ -332,16 +329,23 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
     throw new ApiError(400, 'Something went wrong while uploading the profile picture please try again later');
   }
 
+  //clean up logic for the old profile picture to delete
+
+  const user = await User.findOne({
+    _id:req.userId
+  })
+
+  const fileToBeDeletedLink = user.avatar.split("/");
+  const fileId = fileToBeDeletedLink[8].split(".")
+  const deleteOldFileFromCloudinary = await deleteFromCloudinary(`${fileToBeDeletedLink[7]}/${fileId[0]}`,`${fileToBeDeletedLink[4]}`,`${fileToBeDeletedLink[5]}`)
+
+  if(deleteOldFileFromCloudinary === false){
+    throw new ApiError("Unable to delete your previous profile picture try again later");
+  } 
+
   try {
-    const user = await User.findOneAndUpdate(
-      {
-        _id:req.userId
-      },
-      {
-        avatar: avatarUrl
-      },
-      {new:true}
-    ).select("-password -refreshToken")
+    user.avatar = avatarUrl
+    await user.save({validateBeforeSave:false})
 
     return res
     .status(200)
@@ -368,23 +372,33 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
   throw new ApiError(400, "error occured while uploading the file on the cloudinary")
  }
 
- const user = await User.findOneAndUpdate(
-  {
-    _id:req.userId
-  },
-  {
-    coverImage: coverImageUrl
-  },
-  {
-    new:true
-  }
- ).select("-password -refreshToken")
+ //clean up logic for the old profile picture to delete
 
- return res
- .status(200)
- .json(
-  new ApiResponse(200, user.coverImage, "Cover Image Updated SuccessFully")
- )
+  const user = await User.findOne({
+    _id:req.userId
+  })
+
+  const fileToBeDeletedLink = user.coverImage.split("/");
+  const fileId = fileToBeDeletedLink[8].split(".")
+  const deleteOldFileFromCloudinary = await deleteFromCloudinary(`${fileToBeDeletedLink[7]}/${fileId[0]}`,`${fileToBeDeletedLink[4]}`,`${fileToBeDeletedLink[5]}`)
+
+  if(deleteOldFileFromCloudinary === false){
+    throw new ApiError("Unable to delete your previous cover image try again later");
+  } 
+
+  try {
+    user.coverImage = coverImageUrl
+    await user.save({validateBeforeSave:false})
+
+    return res
+    .status(200)
+    .json(
+      new ApiResponse(200, user.avatar, "Cover Image update successfully")
+    )
+
+  } catch (error) {
+    throw new ApiError(500, 'Error occured while upadting the users info')
+  }
 } )
 
 export {
