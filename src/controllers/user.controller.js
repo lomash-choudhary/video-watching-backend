@@ -401,6 +401,80 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
   }
 } )
 
+const getUserChannelProfile = asyncHandler( async(req, res) => {
+  const { username } = req.params
+  console.log(username)
+  console.log(req.params)
+  if(!username){
+    throw new ApiError(400, "username is missing")
+  }
+
+  const userSpecificDetails = await User.aggregate([
+    {
+      $match:{
+        username: username?.toLowerCase()
+      }
+    },
+    {
+      $lookup:{
+        from: "subscriptions",
+        localField:"_id",
+        foreignField:"channel",
+        as:"subscribers"
+      }
+    },
+    {
+      $lookup:{
+        from:"subscription",
+        localField:"_id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+      }
+    },
+    {
+      $addFields:{
+        subsribersCount:{
+          $size:"$subscribers"
+        },
+        channelsSubscribedTo:{
+          $size:"$subscribedTo"
+        },
+        isSubscribed:{
+          $cond:{
+            if:{
+              $in: [
+                req.userId, "$subscribers.subscriber"
+              ]
+            },
+            then:true,
+            else:false
+          }
+        }
+      }
+    },
+    {
+      $project:{
+        fullName:1,
+        username:1,
+        email:1,
+        avatar:1,
+        coverImage:1,
+        subscribersCount:1,
+        channelsSubscribedTo:1,
+        isSubscribed:1
+      }
+    }
+  ])
+  console.log(userSpecificDetails);
+
+  return res.
+  status(200)
+  .json(
+    new ApiResponse(200, userSpecificDetails, "User details fetched successfully")
+  )
+
+} )
+
 export {
   signUpUser,
   loginUser,
@@ -410,5 +484,6 @@ export {
   getUserDetails,
   updateUserDetails,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  getUserChannelProfile
 }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signUpUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getUserDetails, updateUserDetails, updateUserAvatar, updateUserCoverImage } from "../controllers/user.controller.js";
+import { signUpUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getUserDetails, updateUserDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -24,10 +24,10 @@ router.route("/login").post(loginUser)
 //custom middleware usuage
 router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/accessTokenGeneration").post(refreshAccessToken)
-router.route("/changePassword").post(verifyJWT,changeCurrentPassword)
+router.route("/changePassword").patch(verifyJWT,changeCurrentPassword)
 router.route("/getUser").get(verifyJWT,getUserDetails)
-router.route("/updateUserDetails").post(verifyJWT,updateUserDetails)
-router.route("/updateProfilePicture").post(
+router.route("/updateUserDetails").patch(verifyJWT,updateUserDetails)
+router.route("/updateProfilePicture").patch(
     upload.fields([
         {
             name: "avatar",
@@ -36,7 +36,7 @@ router.route("/updateProfilePicture").post(
     ]),
 verifyJWT,updateUserAvatar)
 
-router.route("/updateCoverImage").post(
+router.route("/updateCoverImage").patch(
     upload.fields([
         {
             name: "coverImage",
@@ -44,6 +44,8 @@ router.route("/updateCoverImage").post(
         }
     ]),
 verifyJWT,updateUserCoverImage)
+
+router.route("/getDeatils/:username").get(verifyJWT,getUserChannelProfile)
 
 
 
