@@ -6,6 +6,7 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import fs from "fs";
+import mongoose from "mongoose";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   const user = await User.findById(userId)
@@ -409,7 +410,7 @@ const getUserChannelProfile = asyncHandler( async(req, res) => {
     throw new ApiError(400, "username is missing")
   }
 
-  const userSpecificDetails = await User.aggregate([
+  const channelSpecificDetails = await User.aggregate([
     {
       $match:{
         username: username?.toLowerCase()
@@ -465,14 +466,69 @@ const getUserChannelProfile = asyncHandler( async(req, res) => {
       }
     }
   ])
-  console.log(userSpecificDetails);
+
+  if(!channelSpecificDetails.length){
+    throw new ApiError(400, "This channel does not exists")
+  }
 
   return res.
   status(200)
   .json(
-    new ApiResponse(200, userSpecificDetails, "User details fetched successfully")
+    new ApiResponse(200, channelSpecificDetails, "User details fetched successfully")
   )
 
+} )
+
+const getUsersWatchHistory = asyncHandler( async(req, res) => {
+  const watchHistoryInfo = await User.aggregate([
+    {
+      $match:{
+        _id:new mongoose.Types.ObjectId(req.userId)
+      }
+    },
+    {
+      $lookup:{
+        from:"videos",
+        localField:"watchHistory",
+        foreignField:"_id",
+        as:"watchHistory",
+        pipeline:[
+          {
+            $lookup:{
+              from:"users",
+              localField:"owner",
+              foreignField:"_id",
+              as:"owner",
+              pipeline:[
+                {
+                  $project:{
+                    fullName:1,
+                    username:1,
+                    avatar:1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            $addFields:{
+              owner:{
+                $first:"$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ])
+
+  console.log(watchHistoryInfo)
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, watchHistoryInfo[0].watchHistory, "Watch history fetched successfully")
+  )
 } )
 
 export {
@@ -485,5 +541,6 @@ export {
   updateUserDetails,
   updateUserAvatar,
   updateUserCoverImage,
-  getUserChannelProfile
+  getUserChannelProfile,
+  getUsersWatchHistory
 }
